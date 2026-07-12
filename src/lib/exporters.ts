@@ -84,6 +84,45 @@ export function exportToExcel<T>(
   XLSX.writeFile(wb, `${safeName(meta.filename)}.xlsx`);
 }
 
+/* ---------------- theme-derived export colors ---------------- */
+/**
+ * Read an HSL token ("25 65% 42%") from the live stylesheet and convert to RGB,
+ * so PDF/print exports always match the current theme — re-branding via
+ * theme.css re-brands the exports too. Falls back if called without a DOM.
+ */
+function themeTokenRgb(token: string, fallback: [number, number, number]): [number, number, number] {
+  try {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+    const m = raw.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/);
+    if (!m) return fallback;
+    const h = Number(m[1]) / 360, s = Number(m[2]) / 100, l = Number(m[3]) / 100;
+    if (s === 0) { const v = Math.round(l * 255); return [v, v, v]; }
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    const hue = (t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    return [
+      Math.round(hue(h + 1 / 3) * 255),
+      Math.round(hue(h) * 255),
+      Math.round(hue(h - 1 / 3) * 255),
+    ];
+  } catch {
+    return fallback;
+  }
+}
+
+const rgbToCss = (c: [number, number, number]) => `rgb(${c[0]},${c[1]},${c[2]})`;
+
+/** Table header fill = --primary; alternate row fill = --secondary. */
+const exportHeaderRgb = () => themeTokenRgb("--primary", [180, 100, 50]);
+const exportAltRowRgb = () => themeTokenRgb("--secondary", [250, 245, 235]);
+
 /* ---------------- PDF ---------------- */
 export function exportToPDF<T>(
   rows: T[],
@@ -115,8 +154,8 @@ export function exportToPDF<T>(
     head: [columns.map((c) => c.header)],
     body: rows.map((r) => columns.map((c) => String(cellValue(r, c) ?? ""))),
     styles: { fontSize: 8, cellPadding: 4 },
-    headStyles: { fillColor: [180, 100, 50], textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [250, 245, 235] },
+    headStyles: { fillColor: exportHeaderRgb(), textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: exportAltRowRgb() },
     columnStyles: columns.reduce((acc, c, i) => {
       if (c.numeric) acc[i] = { halign: "right" };
       return acc;
@@ -164,7 +203,7 @@ export function batchPrintHTML(htmls: string[], title = "Batch Print") {
       .voucher:last-child { page-break-after: auto; }
       table { width: 100%; border-collapse: collapse; }
       th, td { border: 1px solid #ddd; padding: 6px 8px; font-size: 12px; }
-      th { background: #f4ead8; text-align: left; }
+      th { background: ${rgbToCss(exportAltRowRgb())}; text-align: left; }
       h1, h2, h3 { margin: 0 0 8px; }
     </style></head><body>
     ${htmls.map((h) => `<div class="voucher">${h}</div>`).join("")}
