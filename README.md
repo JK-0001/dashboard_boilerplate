@@ -79,12 +79,24 @@ skeleton loading, and filter-aware empty states.
   `⌘K` palette, `/` search, `F2` save, `Esc` close, `Enter` advances fields in
   multi-field entry flows.
 
-## Adding auth
+## Auth (built in, env-gated)
 
-`pages/_app.tsx` has a marked spot: wrap `<AppLayout>` in a Guard that
-redirects unauthenticated users to `/login` (keep `/login` in a
-`PUBLIC_PATHS` list rendered without the shell). Pass `userEmail` / `onSignOut`
-to `<AppSidebar>` to light up the footer account row.
+Auth ships wired but **off by default** so the repo runs with zero setup.
+To enable it:
+
+1. `cp .env.example .env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL` +
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` from your Supabase project.
+2. Restart the dev server.
+
+That's it — the Guard in `pages/_app.tsx` now redirects signed-out users to
+the styled `/login` page (email + password via Supabase), the sidebar footer
+shows the signed-in email with a sign-out button, and signing out returns to
+`/login`. Without the env vars, `AUTH_ENABLED` is false and the app runs open.
+
+Pieces: `src/lib/supabase.ts` (env-gated client), `src/contexts/AuthContext.tsx`
+(session + signIn/signOut), `src/pages/Login.tsx`, `PUBLIC_PATHS` in
+`pages/_app.tsx` (routes rendered without the shell). For other providers,
+swap the internals of AuthContext and keep its interface.
 
 ## Optional patterns to port from spicebooks when needed
 

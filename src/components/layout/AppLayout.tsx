@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Search as SearchIcon, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { TOP_NAV } from "@/lib/nav";
 import { STORAGE_PREFIX } from "@/lib/appConfig";
+import { useAuth } from "@/contexts/AuthContext";
+import { AUTH_ENABLED } from "@/lib/supabase";
 
 const PIN_KEY = `${STORAGE_PREFIX}_sidebar_pinned`;
 
@@ -25,7 +27,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   const router = useRouter();
+  const { user, signOut } = useAuth();
   useTrackRecentRoutes();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace("/login");
+  };
 
   // Backspace returns to the Dashboard when the user drilled in from a KPI card
   // (those links carry ?ref=dash). Ignored while typing in an input/textarea.
@@ -54,7 +62,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <AppSidebar pinned={pinned} />
+      <AppSidebar
+        pinned={pinned}
+        userEmail={user?.email ?? null}
+        onSignOut={AUTH_ENABLED ? handleSignOut : undefined}
+      />
 
       {/* ── Single top bar: pin · nav links · (spacer) · bell · theme · search ── */}
       <header className={cn("fixed top-0 right-0 z-20 h-14 border-b border-sidebar-border bg-sidebar text-sidebar-foreground flex items-center gap-2 px-3 transition-[left] duration-200", offsetLeft)}>
