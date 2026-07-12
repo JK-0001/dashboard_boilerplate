@@ -1,0 +1,55 @@
+/* Base stylesheet — you should NOT need to edit this file per project.
+   All branding lives in src/styles/theme.css. */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  /* Remove number input spinner arrows globally */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Hide scrollbars everywhere — scrolling still works (wheel / trackpad /
+     keyboard / touch), we just don't render the visible bar. */
+  * {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE/Edge legacy */
+  }
+  *::-webkit-scrollbar {
+    display: none;                /* Chrome / Safari / Edge */
+  }
+}
+
+@layer utilities {
+  /* Scrollable but with the scrollbar visually hidden (wheel/trackpad still work) */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none;    /* Firefox */
+  }
+}
+
+/* Sonner: move each toast's close (✕) button to the TOP-RIGHT corner
+   (Sonner positions it top-left by default). */
+[data-sonner-toast] [data-close-button] {
+  left: auto !important;
+  right: 0 !important;
+  transform: translate(35%, -35%) !important;
+}

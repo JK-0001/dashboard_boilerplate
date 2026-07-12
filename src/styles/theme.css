@@ -1,0 +1,115 @@
+/* ════════════════════════════════════════════════════════════════════════
+ THEME — the ONLY file you edit to re-brand a new project.
+ ════════════════════════════════════════════════════════════════════════
+
+ Every color is an HSL triplet ("H S% L%") consumed as hsl(var(--x)).
+
+ RE-THEMING RECIPE — change the HUES, keep the lightness/saturation:
+   --background      brand-hue tinted off-white  (~97% L, low sat)
+   --foreground      near-black in the brand hue (~12% L)
+   --primary         your saturated brand color  (~42% L)
+   --accent          a warmer/brighter companion (~50% L)
+   --sidebar-*       a DARK version of the brand hue (15% L light mode,
+                     8% L dark mode) — the chrome (sidebar + header) is
+                     always dark; that contrast is the signature look.
+   --table-header    an OPAQUE tint between secondary and border — never
+                     transparent, or sticky table headers break.
+
+ Example: for a blue product, replace hue 25/35/40 with 220/215/210.
+ ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --background: 35 30% 97%;
+  --foreground: 25 25% 12%;
+
+  --card: 36 30% 99%;
+  --card-foreground: 25 25% 12%;
+
+  --popover: 36 30% 99%;
+  --popover-foreground: 25 25% 12%;
+
+  --primary: 25 65% 42%;
+  --primary-foreground: 36 30% 98%;
+
+  --secondary: 35 25% 91%;
+  --secondary-foreground: 25 25% 18%;
+
+  --muted: 35 18% 93%;
+  --muted-foreground: 25 10% 46%;
+
+  --accent: 40 55% 50%;
+  --accent-foreground: 25 25% 12%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 30 18% 87%;
+  --input: 30 18% 87%;
+  --ring: 25 65% 42%;
+
+  --radius: 0.5rem;
+
+  /* Chrome (sidebar + header) — always dark, even in light mode */
+  --sidebar-background: 25 20% 15%;
+  --sidebar-foreground: 35 20% 90%;
+  --sidebar-primary: 40 55% 55%;
+  --sidebar-primary-foreground: 25 20% 10%;
+  --sidebar-accent: 25 18% 22%;
+  --sidebar-accent-foreground: 35 20% 90%;
+  --sidebar-border: 25 15% 25%;
+  --sidebar-ring: 40 55% 55%;
+
+  --success: 142 60% 40%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 25 25% 12%;
+
+  /* Opaque, slightly dark header for tables (sticky-safe) */
+  --table-header: 32 26% 83%;
+}
+
+.dark {
+  --background: 25 18% 10%;
+  --foreground: 35 20% 92%;
+
+  --card: 25 18% 13%;
+  --card-foreground: 35 20% 92%;
+
+  --popover: 25 18% 13%;
+  --popover-foreground: 35 20% 92%;
+
+  --primary: 30 60% 50%;
+  --primary-foreground: 25 20% 8%;
+
+  --secondary: 25 15% 20%;
+  --secondary-foreground: 35 20% 90%;
+
+  --muted: 25 12% 18%;
+  --muted-foreground: 30 10% 55%;
+
+  --accent: 40 50% 45%;
+  --accent-foreground: 35 20% 92%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 25 12% 22%;
+  --input: 25 12% 22%;
+  --ring: 30 60% 50%;
+
+  --sidebar-background: 25 20% 8%;
+  --sidebar-foreground: 35 20% 90%;
+  --sidebar-primary: 40 55% 55%;
+  --sidebar-primary-foreground: 25 20% 8%;
+  --sidebar-accent: 25 18% 15%;
+  --sidebar-accent-foreground: 35 20% 90%;
+  --sidebar-border: 25 12% 18%;
+  --sidebar-ring: 40 55% 55%;
+
+  --success: 142 50% 35%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 80% 45%;
+  --warning-foreground: 25 25% 12%;
+
+  --table-header: 25 15% 26%;
+}
