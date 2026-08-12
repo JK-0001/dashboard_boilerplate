@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,7 +24,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Masters",
     items: [
       { to: "/products", label: "Products", icon: Package },
-      // { to: "/customers", label: "Customers", icon: Users },
+      { to: "/customers", label: "Customers", icon: Users },
     ],
   },
   // Subgroups (accordion) are supported too:
@@ -48,6 +49,7 @@ export const FOOTER_NAV: NavItem = { to: "/settings", label: "Settings", icon: S
 /** Quick-create actions for the ⌘K palette (deep-link to ?new=1 forms). */
 export const QUICK_ACTIONS: NavItem[] = [
   { to: "/products?new=1", label: "New Product", icon: Package },
+  { to: "/customers?new=1", label: "New Customer", icon: Users },
 ];
 
 /** Flat route → label map (recents tracking + palette "Go to"). */
