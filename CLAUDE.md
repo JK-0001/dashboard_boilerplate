@@ -21,9 +21,9 @@ is shared infrastructure — treat it as read-only unless fixing a bug.
 
 `src/pages/Products.tsx` is the canonical CRUD template. To add e.g. Customers:
 
-1. **Data**: add a `Customer` type + `customerApi = { list, create, update, remove }`
-   to `src/lib/demoStore.ts` (or the real API module), mirroring `productApi`.
-   Seed ~10 realistic demo rows.
+1. **Data**: add a `Customer` type + `customerApi = { list, create, update,
+   remove, removeMany, updateMany }` to `src/lib/demoStore.ts` (or the real
+   API module), mirroring `productApi`. Seed ~10 realistic demo rows.
 2. **Page**: copy `src/pages/Products.tsx` → `src/pages/Customers.tsx`. Change
    only: the type, the form fields, the table columns, the search columns, the
    export columns, the STATUS map, and the API calls. Keep every structural
@@ -82,6 +82,19 @@ SheetContent). Support `?new=1` auto-open. Small read-only detail views may
 use `<Dialog>` (`max-h-[85vh] overflow-y-auto` when tall).
 ⚠️ NEVER add translate/slide animations to `ui/sheet.tsx` — the fixed-position
 combobox dropdowns depend on the modal being transform-free.
+
+**Bulk actions** — every list table has a leading checkbox column driven by
+`useBatchSelection(filtered)` (selection over the filtered rows): header
+`<Checkbox>` in a `w-10` head = select all / none (`"indeterminate"` when
+partial); each row's checkbox cell calls `e.stopPropagation()` so ticking
+never opens the edit modal. While ≥1 row is selected, render the selection
+bar above the table card: `flex items-center gap-2 rounded-md border
+bg-muted/40 px-3 py-2` containing "{n} selected", a "Set status" outline-sm
+DropdownMenu (bulk update via `xApi.updateMany` → `toast.success`), a Delete
+outline-sm button with `text-destructive` (AlertDialog "Delete {n} xs?"
+confirm → `xApi.removeMany` → red `toast.error("{n} xs deleted")`), and a
+ghost "Clear". Remember: adding the checkbox column changes the table's
+column count — update `SkeletonRows columns` and empty-state `colSpan`.
 
 **Deletes** — always `<AlertDialog>` confirm (title "Delete {name}?",
 consequence sentence, Cancel + primary "Delete" action), triggered by a ghost

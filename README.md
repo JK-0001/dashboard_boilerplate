@@ -47,9 +47,11 @@ identically.
 
 The template already includes: clickable rows → edit modal, popup-modal
 create/edit (the centered Sheet), AlertDialog delete confirm + red toast,
-global search with `/` hotkey, per-column funnel filters, CSV/Excel/PDF
-export, F2 save, localStorage drafts for new records, `?new=1` deep links,
-skeleton loading, and filter-aware empty states.
+bulk selection (checkbox column + select-all) with a bulk-actions bar
+(bulk status update, bulk delete with confirm), global search with `/`
+hotkey, per-column funnel filters, CSV/Excel/PDF export, F2 save,
+localStorage drafts for new records, `?new=1` deep links, skeleton loading,
+and filter-aware empty states.
 
 ## Non-negotiable conventions (what keeps every app consistent)
 

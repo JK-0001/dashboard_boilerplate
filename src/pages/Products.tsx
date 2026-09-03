@@ -17,14 +17,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, Trash2, Package } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -46,6 +50,7 @@ import { ColumnFilter } from "@/components/ColumnFilter";
 import { ExportMenu } from "@/components/ExportMenu";
 
 import { useListSearch, type SearchColumn } from "@/hooks/useListSearch";
+import { useBatchSelection } from "@/hooks/useBatchSelection";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useF2Save } from "@/hooks/useFormShortcuts";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -117,6 +122,8 @@ export default function Products() {
   );
   const search = useListSearch(products, columns);
   const { filtered } = search;
+  // Bulk selection operates on the currently filtered rows.
+  const sel = useBatchSelection(filtered);
 
   useHotkeys({
     "/": (e) => {
@@ -203,6 +210,28 @@ export default function Products() {
     onError: (e) => toast.error(friendlyDbError(e)),
   });
 
+  // Bulk actions on the checkbox selection.
+  const bulkStatusMutation = useMutation({
+    mutationFn: (status: ProductStatus) =>
+      productApi.updateMany([...sel.selected], { status }),
+    onSuccess: (_data, status) => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success(`${sel.selected.size} products set to ${STATUS[status].label}`);
+      sel.clear();
+    },
+    onError: (e) => toast.error(friendlyDbError(e)),
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: () => productApi.removeMany([...sel.selected]),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      toast.error(`${sel.selected.size} products deleted`);
+      sel.clear();
+    },
+    onError: (e) => toast.error(friendlyDbError(e)),
+  });
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!form.name.trim()) { toast.error("Enter a product name"); return; }
@@ -258,6 +287,55 @@ export default function Products() {
         </div>
       </div>
 
+      {/* Selection bar — appears only while rows are checked */}
+      {sel.selected.size > 0 && (
+        <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+          <span className="text-sm font-medium">{sel.selected.size} selected</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                Set status <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              {(Object.keys(STATUS) as ProductStatus[]).map((s) => (
+                <DropdownMenuItem key={s} onClick={() => bulkStatusMutation.mutate(s)}>
+                  {STATUS[s].label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete {sel.selected.size} products?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently remove the selected products. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => bulkDeleteMutation.mutate()}>
+                  Delete {sel.selected.size}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button variant="ghost" size="sm" onClick={sel.clear}>
+            Clear
+          </Button>
+        </div>
+      )}
+
       {/* Table card — bounded scroller so the sticky header pins */}
       <Card>
         <CardContent className="p-0 overflow-hidden">
@@ -265,6 +343,13 @@ export default function Products() {
             <Table striped>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={sel.allChecked ? true : sel.someChecked ? "indeterminate" : false}
+                      onCheckedChange={() => sel.toggleAll()}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead>
@@ -287,10 +372,10 @@ export default function Products() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <SkeletonRows rows={6} columns={8} />
+                  <SkeletonRows rows={6} columns={9} />
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center">
+                    <TableCell colSpan={9} className="h-32 text-center">
                       <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <Package className="h-8 w-8" />
                         <p className="text-sm">
@@ -304,6 +389,14 @@ export default function Products() {
                 ) : (
                   filtered.map((p) => (
                     <TableRow key={p.id} className="cursor-pointer" onClick={() => openEdit(p)}>
+                      {/* Checkbox cell stops propagation so ticking never opens the modal */}
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={sel.selected.has(p.id)}
+                          onCheckedChange={() => sel.toggle(p.id)}
+                          aria-label={`Select ${p.name}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{p.name}</TableCell>
                       <TableCell className="font-mono text-sm">{p.sku}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">

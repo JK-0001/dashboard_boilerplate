@@ -2,9 +2,10 @@
  * demoStore — an in-memory fake API so the boilerplate runs with zero setup.
  *
  * ► REPLACE THIS FILE with your real data layer (Supabase / REST / tRPC).
- *   Keep the same function shapes (list/create/update/remove returning
- *   Promises) and every page keeps working unchanged — the pages only talk
- *   to this module through react-query.
+ *   Keep the same function shapes (list/create/update/remove, plus
+ *   removeMany/updateMany for bulk actions, all returning Promises) and
+ *   every page keeps working unchanged — the pages only talk to this
+ *   module through react-query.
  */
 import { uid } from "@/lib/utils";
 
@@ -71,5 +72,17 @@ export const productApi = {
   async remove(id: string): Promise<void> {
     await delay();
     products = products.filter((p) => p.id !== id);
+  },
+
+  async removeMany(ids: string[]): Promise<void> {
+    await delay();
+    const drop = new Set(ids);
+    products = products.filter((p) => !drop.has(p.id));
+  },
+
+  async updateMany(ids: string[], patch: Partial<ProductInput>): Promise<void> {
+    await delay();
+    const hit = new Set(ids);
+    products = products.map((p) => (hit.has(p.id) ? { ...p, ...patch } : p));
   },
 };
