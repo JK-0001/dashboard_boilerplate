@@ -161,6 +161,19 @@ form · Esc close · Backspace back only from `?ref=dash` drill-downs.
   their content.
 - Never bypass `format.ts`, `dbErrors.ts`, or the toast conventions.
 
+## Activity log
+
+Every mutation's `onSuccess` calls `logActivity({ action, entityType,
+entityId?, summary })` from `@/lib/activityLog` — a fire-and-forget write
+that NEVER throws into the mutation (best-effort side effects are a house
+convention: activity, notifications, telemetry all try/catch + console,
+never break the user's save). Summaries are human sentences ("Deleted
+product V-Belt B40"). Verbs map to tones via `ACTIVITY_ACTION_META`. The
+feed lives at `/activity` (permission `page.activity`). With a real
+backend, run `supabase/migrations/0001_audit_log.sql` — a generic trigger
+audits data changes for free (skips no-op updates, append-only RLS); keep
+client logging for what the DB can't see (exports, imports, logins).
+
 ## Spreadsheet import
 
 Every entity that users bring existing data into gets an Import button

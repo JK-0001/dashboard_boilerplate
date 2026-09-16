@@ -62,6 +62,7 @@ import { useConfirm } from "@/contexts/ConfirmContext";
 import { usePermissions } from "@/contexts/PermissionsContext";
 
 import { productApi, type Product, type ProductInput, type ProductStatus } from "@/lib/demoStore";
+import { logActivity } from "@/lib/activityLog";
 import type { ImportField } from "@/lib/importSheet";
 import { PRODUCT_STATUS, statusMeta } from "@/lib/status";
 import { dateInRange, localToday } from "@/lib/dateRange";
@@ -208,9 +209,15 @@ export default function Products() {
       };
       return editingId ? productApi.update(editingId, payload) : productApi.create(payload);
     },
-    onSuccess: () => {
+    onSuccess: (row) => {
       qc.invalidateQueries({ queryKey: ["products"] });
       toast.success(editingId ? "Product updated" : "Product created");
+      logActivity({
+        action: editingId ? "update" : "create",
+        entityType: "product",
+        entityId: row.id,
+        summary: `${editingId ? "Updated" : "Created"} product ${row.name}`,
+      });
       draft.clear();
       closeSheet();
     },
@@ -218,10 +225,11 @@ export default function Products() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: productApi.remove,
-    onSuccess: () => {
+    mutationFn: (p: Product) => productApi.remove(p.id),
+    onSuccess: (_d, p) => {
       qc.invalidateQueries({ queryKey: ["products"] });
       toast.error("Product deleted"); // red toast = destructive action, by convention
+      logActivity({ action: "delete", entityType: "product", entityId: p.id, summary: `Deleted product ${p.name}` });
     },
     onError: (e) => toast.error(friendlyDbError(e)),
   });
@@ -233,6 +241,11 @@ export default function Products() {
     onSuccess: (_data, status) => {
       qc.invalidateQueries({ queryKey: ["products"] });
       toast.success(`${sel.selected.size} products set to ${PRODUCT_STATUS[status].label}`);
+      logActivity({
+        action: "update",
+        entityType: "product",
+        summary: `Bulk set ${sel.selected.size} products to ${PRODUCT_STATUS[status].label}`,
+      });
       sel.clear();
     },
     onError: (e) => toast.error(friendlyDbError(e)),
@@ -243,6 +256,11 @@ export default function Products() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products"] });
       toast.error(`${sel.selected.size} products deleted`);
+      logActivity({
+        action: "delete",
+        entityType: "product",
+        summary: `Bulk deleted ${sel.selected.size} products`,
+      });
       sel.clear();
     },
     onError: (e) => toast.error(friendlyDbError(e)),
@@ -482,7 +500,7 @@ export default function Products() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteMutation.mutate(p.id)}>
+                                <AlertDialogAction onClick={() => deleteMutation.mutate(p)}>
                                   Delete
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -527,6 +545,7 @@ export default function Products() {
         onCommit={async (rows) => {
           const n = await productApi.createMany(rows);
           qc.invalidateQueries({ queryKey: ["products"] });
+          logActivity({ action: "import", entityType: "product", summary: `Imported ${n} products from spreadsheet` });
           return n;
         }}
       />

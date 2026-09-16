@@ -6,6 +6,7 @@
  * Structure: groups → optional subgroups → items. Icons are lucide-react.
  */
 import {
+  Activity,
   LayoutDashboard,
   Package,
   Settings,
@@ -39,6 +40,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Admin",
     items: [
       { to: "/team", label: "Team", icon: Users, permission: "page.team" },
+      { to: "/activity", label: "Activity", icon: Activity, permission: "page.activity" },
     ],
   },
   // Subgroups (accordion) are supported too:

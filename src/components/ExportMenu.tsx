@@ -19,6 +19,7 @@ import {
   type ExportColumn,
 } from "@/lib/exporters";
 import { APP_NAME } from "@/lib/appConfig";
+import { logActivity } from "@/lib/activityLog";
 import { toast } from "sonner";
 
 interface Props<T> {
@@ -65,6 +66,11 @@ export function ExportMenu<T>({
       if (kind === "csv") exportToCSV(data, columns, meta);
       if (kind === "excel") exportToExcel(data, columns, meta);
       if (kind === "pdf") exportToPDF(data, columns, meta, { orientation: pdfOrientation });
+      logActivity({
+        action: "export",
+        entityType: filename,
+        summary: `Exported ${data.length} rows as ${kind.toUpperCase()} (${title})`,
+      });
       toast.success(`Exported ${data.length} rows as ${kind.toUpperCase()}`);
     } catch (e: any) {
       toast.error(`Export failed: ${e.message}`);
