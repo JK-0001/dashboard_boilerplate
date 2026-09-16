@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/command";
 import { useRecentRoutes } from "@/hooks/useRecentRoutes";
 import { ALL_ROUTES, QUICK_ACTIONS } from "@/lib/nav";
+import { usePermissions } from "@/contexts/PermissionsContext";
 import { Clock, Plus } from "lucide-react";
 import { useState } from "react";
 
@@ -29,7 +30,12 @@ export function CommandPalette({
 }) {
   const router = useRouter();
   const { recents } = useRecentRoutes();
+  const { can, canOpen } = usePermissions();
   const [query, setQuery] = useState("");
+
+  const routes = ALL_ROUTES.filter((r) => !r.permission || can(r.permission));
+  const actions = QUICK_ACTIONS.filter((a) => canOpen(a.to.split("?")[0]));
+  const recentAllowed = recents.filter((r) => canOpen(r.path));
 
   const go = (to: string) => {
     onOpenChange(false);
@@ -47,10 +53,10 @@ export function CommandPalette({
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
 
-        {query === "" && recents.length > 0 && (
+        {query === "" && recentAllowed.length > 0 && (
           <>
             <CommandGroup heading="Recently visited">
-              {recents.slice(0, 5).map((r) => (
+              {recentAllowed.slice(0, 5).map((r) => (
                 <CommandItem key={r.path} value={`recent-${r.label}`} onSelect={() => go(r.path)}>
                   <Clock className="mr-2 h-4 w-4" />
                   {r.label}
@@ -62,7 +68,7 @@ export function CommandPalette({
         )}
 
         <CommandGroup heading="Create">
-          {QUICK_ACTIONS.map((a) => (
+          {actions.map((a) => (
             <CommandItem key={a.to} value={`create-${a.label}`} onSelect={() => go(a.to)}>
               <Plus className="mr-2 h-4 w-4" />
               {a.label}
@@ -72,7 +78,7 @@ export function CommandPalette({
         <CommandSeparator />
 
         <CommandGroup heading="Go to">
-          {ALL_ROUTES.map((r) => (
+          {routes.map((r) => (
             <CommandItem key={r.to} value={`goto-${r.label}`} onSelect={() => go(r.to)}>
               <r.icon className="mr-2 h-4 w-4" />
               {r.label}

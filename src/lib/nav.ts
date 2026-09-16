@@ -9,10 +9,18 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  Users,
   type LucideIcon,
 } from "lucide-react";
+import type { Permission } from "@/lib/permissions";
 
-export type NavItem = { to: string; label: string; icon: LucideIcon };
+export type NavItem = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  /** When set, the item only shows for roles holding this permission. */
+  permission?: Permission;
+};
 export type SubGroup = { key: string; label: string; items: NavItem[] };
 export type NavGroup = { key: string; label: string; items?: NavItem[]; subgroups?: SubGroup[] };
 
@@ -22,8 +30,15 @@ export const NAV_GROUPS: NavGroup[] = [
     key: "masters",
     label: "Masters",
     items: [
-      { to: "/products", label: "Products", icon: Package },
-      // { to: "/customers", label: "Customers", icon: Users },
+      { to: "/products", label: "Products", icon: Package, permission: "page.products" },
+      // { to: "/customers", label: "Customers", icon: Users, permission: "page.customers" },
+    ],
+  },
+  {
+    key: "admin",
+    label: "Admin",
+    items: [
+      { to: "/team", label: "Team", icon: Users, permission: "page.team" },
     ],
   },
   // Subgroups (accordion) are supported too:
@@ -43,7 +58,7 @@ export const TOP_NAV: NavItem[] = [
 ];
 
 /** Footer link in the sidebar. */
-export const FOOTER_NAV: NavItem = { to: "/settings", label: "Settings", icon: Settings };
+export const FOOTER_NAV: NavItem = { to: "/settings", label: "Settings", icon: Settings, permission: "page.settings" };
 
 /** Quick-create actions for the ⌘K palette (deep-link to ?new=1 forms). */
 export const QUICK_ACTIONS: NavItem[] = [

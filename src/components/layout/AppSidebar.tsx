@@ -11,6 +11,7 @@ import { ChevronDown, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV_GROUPS, FOOTER_NAV, type NavGroup, type NavItem } from "@/lib/nav";
 import { APP_NAME, APP_ICON, STORAGE_PREFIX } from "@/lib/appConfig";
+import { usePermissions } from "@/contexts/PermissionsContext";
 
 /** Flatten a group's items (covers both flat groups and ones with subgroups). */
 function allItemsOf(group: NavGroup): NavItem[] {
@@ -62,8 +63,19 @@ export function AppSidebar({
   onSignOut?: () => void;
 }) {
   const router = useRouter();
+  const { can } = usePermissions();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(loadOpenState);
   const [hovered, setHovered] = useState(false);
+
+  // Permission-gate nav items; groups with nothing visible disappear.
+  const allowed = (i: NavItem) => !i.permission || can(i.permission);
+  const visibleGroups = NAV_GROUPS.map((g) => ({
+    ...g,
+    items: g.items?.filter(allowed),
+    subgroups: g.subgroups
+      ?.map((s) => ({ ...s, items: s.items.filter(allowed) }))
+      .filter((s) => s.items.length > 0),
+  })).filter((g) => (g.items?.length ?? 0) > 0 || (g.subgroups?.length ?? 0) > 0);
   // Accordion for subgroups: only one open at a time.
   const [openSub, setOpenSub] = useState<string>(
     NAV_GROUPS.find((g) => g.subgroups)?.subgroups?.[0]?.key ?? "",
@@ -106,7 +118,7 @@ export function AppSidebar({
         className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-3 [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: "none" }}
       >
-        {NAV_GROUPS.map((group) => {
+        {visibleGroups.map((group) => {
           const open = openGroups[group.key] ?? true;
           const isActiveTo = (to: string) =>
             to === "/" ? router.pathname === "/" : router.pathname.startsWith(to);
@@ -177,6 +189,7 @@ export function AppSidebar({
 
       {/* Footer */}
       <div className="border-t border-sidebar-border p-2 space-y-0.5">
+        {allowed(FOOTER_NAV) && (
         <NavLink
           to={FOOTER_NAV.to}
           title={FOOTER_NAV.label}
@@ -193,6 +206,7 @@ export function AppSidebar({
           <FOOTER_NAV.icon className="h-4 w-4 shrink-0" />
           {expanded && FOOTER_NAV.label}
         </NavLink>
+        )}
 
         {(userEmail || onSignOut) && (
           <div className={cn("flex items-center gap-2 rounded-md py-2", expanded ? "px-3" : "px-0 justify-center")}>

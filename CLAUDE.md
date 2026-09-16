@@ -161,6 +161,21 @@ form · Esc close · Backspace back only from `?ref=dash` drill-downs.
   their content.
 - Never bypass `format.ts`, `dbErrors.ts`, or the toast conventions.
 
+## Roles & permissions
+
+`src/lib/permissions.ts` is the single vocabulary: `page.*` permissions
+gate what a role SEES (nav + RouteGuard), action permissions gate what it
+DOES. When adding an entity/page: add its `page.x` (and `x.write` /
+`x.delete` if needed) to `PERMISSIONS` + `PERMISSION_LABELS` +
+`DEFAULT_ROLE_PERMISSIONS` + `ROUTE_PERMISSION`, and set `permission:` on
+its nav item. Gate buttons with `const { can } = usePermissions()` —
+e.g. hide the New/Import buttons without `products.write`. Never invent a
+second role system; owner always keeps every permission (enforced in
+`resolvePermissions`). The Team page (`src/pages/Team.tsx`) hosts the
+member list + permission matrix; nav hiding is courtesy, `<RouteGuard>`
+(mounted in AppLayout) is the sign on the door, and server-side checks/RLS
+are the real lock once a backend exists.
+
 ## Auth note
 
 Auth is env-gated (`src/lib/supabase.ts`): no env vars → app runs open;

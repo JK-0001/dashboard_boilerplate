@@ -85,4 +85,47 @@ export const productApi = {
     const hit = new Set(ids);
     products = products.map((p) => (hit.has(p.id) ? { ...p, ...patch } : p));
   },
+
+  /** Bulk create (import wizard). Returns the number inserted. */
+  async createMany(inputs: ProductInput[]): Promise<number> {
+    await delay();
+    const rows: Product[] = inputs.map((input) => ({
+      ...input,
+      id: uid(),
+      created_at: new Date().toISOString(),
+    }));
+    products = [...rows, ...products];
+    return rows.length;
+  },
+};
+
+// ── Team (roles demo) ───────────────────────────────────────────────────────
+
+export type TeamRole = "owner" | "admin" | "manager" | "staff";
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: TeamRole;
+  created_at: string;
+}
+
+let team: TeamMember[] = [
+  { id: uid(), name: "Jatin Khatri",  email: "jatin@example.com",  role: "owner",   created_at: daysAgo(400) },
+  { id: uid(), name: "Asha Verma",    email: "asha@example.com",   role: "admin",   created_at: daysAgo(180) },
+  { id: uid(), name: "Rohit Malhotra",email: "rohit@example.com",  role: "manager", created_at: daysAgo(90) },
+  { id: uid(), name: "Neha Joshi",    email: "neha@example.com",   role: "staff",   created_at: daysAgo(30) },
+];
+
+export const teamApi = {
+  async list(): Promise<TeamMember[]> {
+    await delay();
+    return [...team];
+  },
+
+  async setRole(id: string, role: TeamRole): Promise<void> {
+    await delay();
+    team = team.map((m) => (m.id === id ? { ...m, role } : m));
+  },
 };

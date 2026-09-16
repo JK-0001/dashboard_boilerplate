@@ -20,6 +20,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ConfirmProvider } from "@/contexts/ConfirmContext";
 import { PeriodProvider } from "@/contexts/PeriodContext";
+import { PermissionsProvider } from "@/contexts/PermissionsContext";
 import { AUTH_ENABLED } from "@/lib/supabase";
 import { APP_NAME } from "@/lib/appConfig";
 
@@ -67,6 +68,7 @@ export default function App({ Component, pageProps }: AppProps) {
           <TooltipProvider>
             <Sonner />
             <AuthProvider>
+              <PermissionsProvider>
               <ConfirmProvider>
                 <PeriodProvider>
                   <Guard page={page}>
@@ -76,6 +78,7 @@ export default function App({ Component, pageProps }: AppProps) {
                   </Guard>
                 </PeriodProvider>
               </ConfirmProvider>
+              </PermissionsProvider>
             </AuthProvider>
           </TooltipProvider>
         </ThemeProvider>

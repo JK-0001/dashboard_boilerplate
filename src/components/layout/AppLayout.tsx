@@ -21,6 +21,8 @@ import { Search as SearchIcon, PanelLeftClose, PanelLeftOpen } from "lucide-reac
 import { TOP_NAV } from "@/lib/nav";
 import { STORAGE_PREFIX } from "@/lib/appConfig";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/contexts/PermissionsContext";
+import { RouteGuard } from "@/components/RouteGuard";
 import { AUTH_ENABLED } from "@/lib/supabase";
 
 const PIN_KEY = `${STORAGE_PREFIX}_sidebar_pinned`;
@@ -30,6 +32,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [pinned, setPinned] = useState(false);
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { can } = usePermissions();
   useTrackRecentRoutes();
   useRealtimeSync(); // live cross-tab/cross-user refresh (inert in demo mode)
 
@@ -86,7 +89,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="h-5 w-px bg-sidebar-border" />
 
         <nav className="flex items-center gap-1">
-          {TOP_NAV.map((item) => (
+          {TOP_NAV.filter((i) => !i.permission || can(i.permission)).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -125,7 +128,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* fixed h-14 bar → start content just below it */}
       <main className={cn("flex-1 p-6 pt-16 transition-[margin] duration-200", offsetMl)}>
-        {children}
+        <RouteGuard>{children}</RouteGuard>
       </main>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
