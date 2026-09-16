@@ -217,10 +217,12 @@ gate what a role SEES (nav + RouteGuard), action permissions gate what it
 DOES. When adding an entity/page: add its `page.x` (and `x.write` /
 `x.delete` if needed) to `PERMISSIONS` + `PERMISSION_LABELS` +
 `DEFAULT_ROLE_PERMISSIONS` + `ROUTE_PERMISSION`, and set `permission:` on
-its nav item. Gate buttons with `const { can } = usePermissions()` —
-e.g. hide the New/Import buttons without `products.write`. Never invent a
-second role system; owner always keeps every permission (enforced in
-`resolvePermissions`). The Team page (`src/pages/Team.tsx`) hosts the
+its nav item. Gate buttons with `const { can } = usePermissions()`: New
+and the edit form need `x.write`, Import needs `data.import`, and EVERY
+delete affordance (row Trash button AND the bulk-bar Delete) needs
+`x.delete` — a permission that exists in the catalog but is checked
+nowhere is a bug. Never invent a second role system; owner always keeps
+every permission (enforced in `resolvePermissions`). The Team page (`src/pages/Team.tsx`) hosts the
 member list + permission matrix; nav hiding is courtesy, `<RouteGuard>`
 (mounted in AppLayout) is the sign on the door, and server-side checks/RLS
 are the real lock once a backend exists.

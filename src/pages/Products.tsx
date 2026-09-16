@@ -375,14 +375,16 @@ export default function Products() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1 text-destructive hover:text-destructive"
-            onClick={handleBulkDelete}
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Delete
-          </Button>
+          {can("products.delete") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 text-destructive hover:text-destructive"
+              onClick={handleBulkDelete}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={sel.clear}>
             Clear
           </Button>
@@ -496,6 +498,7 @@ export default function Products() {
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
+                          {can("products.delete") && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -522,6 +525,7 @@ export default function Products() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
