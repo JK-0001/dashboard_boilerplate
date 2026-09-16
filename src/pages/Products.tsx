@@ -23,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -48,33 +47,23 @@ import { SkeletonRows } from "@/components/ui/skeleton-table";
 import { EntityCombobox } from "@/components/EntityCombobox";
 import { ColumnFilter } from "@/components/ColumnFilter";
 import { ExportMenu } from "@/components/ExportMenu";
+import { StatusBadge } from "@/components/StatusBadge";
+import { InlineEditCell } from "@/components/InlineEditCell";
+import { DateRangeFilter, type DateRangeValue } from "@/components/DateRangeFilter";
 
 import { useListSearch, type SearchColumn } from "@/hooks/useListSearch";
 import { useBatchSelection } from "@/hooks/useBatchSelection";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { useF2Save } from "@/hooks/useFormShortcuts";
 import { useFormDraft } from "@/hooks/useFormDraft";
+import { useRowWindow } from "@/hooks/useRowWindow";
+import { useConfirm } from "@/contexts/ConfirmContext";
 
 import { productApi, type Product, type ProductStatus } from "@/lib/demoStore";
+import { PRODUCT_STATUS, statusMeta } from "@/lib/status";
+import { dateInRange, localToday } from "@/lib/dateRange";
 import { friendlyDbError } from "@/lib/dbErrors";
 import { fmtAmt, fmtDate } from "@/lib/format";
-import { cn } from "@/lib/utils";
-
-// ── status badge convention: emerald=good, amber=warning, slate=neutral ─────
-const STATUS: Record<ProductStatus, { label: string; badge: string }> = {
-  active: {
-    label: "Active",
-    badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800",
-  },
-  low_stock: {
-    label: "Low stock",
-    badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800",
-  },
-  discontinued: {
-    label: "Discontinued",
-    badge: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700",
-  },
-};
 
 // ── form state ───────────────────────────────────────────────────────────────
 interface FormState {
@@ -93,8 +82,10 @@ const emptyForm = (): FormState => ({
 export default function Products() {
   const router = useRouter();
   const qc = useQueryClient();
+  const confirm = useConfirm();
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [range, setRange] = useState<DateRangeValue>({ key: "all" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
@@ -114,16 +105,26 @@ export default function Products() {
       { key: "category", get: (p) => p.category },
       { key: "price",    get: (p) => p.price },
       { key: "stock",    get: (p) => p.stock },
-      { key: "status",   get: (p) => STATUS[p.status].label },
+      { key: "status",   get: (p) => PRODUCT_STATUS[p.status].label },
       { key: "created",  get: (p) => fmtDate(p.created_at) },
       { key: "notes",    get: (p) => p.notes, hidden: true },
     ],
     [],
   );
-  const search = useListSearch(products, columns);
+  // Date-range filter runs before search/column filters.
+  const dateFiltered = useMemo(
+    () => products.filter((p) => dateInRange(p.created_at, range.key, localToday(), range.from, range.to)),
+    [products, range],
+  );
+  const search = useListSearch(dateFiltered, columns);
   const { filtered } = search;
   // Bulk selection operates on the currently filtered rows.
   const sel = useBatchSelection(filtered);
+
+  // Infinite-scroll windowing: render in 100-row batches. filterSig changes
+  // only on real filter-criteria changes so inline edits don't reset scroll.
+  const filterSig = `${range.key}|${range.from ?? ""}|${range.to ?? ""}|${search.global}|${JSON.stringify(search.colText)}|${JSON.stringify(search.colValues)}`;
+  const win = useRowWindow(filtered, filterSig);
 
   useHotkeys({
     "/": (e) => {
@@ -216,7 +217,7 @@ export default function Products() {
       productApi.updateMany([...sel.selected], { status }),
     onSuccess: (_data, status) => {
       qc.invalidateQueries({ queryKey: ["products"] });
-      toast.success(`${sel.selected.size} products set to ${STATUS[status].label}`);
+      toast.success(`${sel.selected.size} products set to ${PRODUCT_STATUS[status].label}`);
       sel.clear();
     },
     onError: (e) => toast.error(friendlyDbError(e)),
@@ -228,6 +229,30 @@ export default function Products() {
       qc.invalidateQueries({ queryKey: ["products"] });
       toast.error(`${sel.selected.size} products deleted`);
       sel.clear();
+    },
+    onError: (e) => toast.error(friendlyDbError(e)),
+  });
+
+  // useConfirm demo: imperative confirm inside a handler (vs the declarative
+  // <AlertDialog> used on standing row buttons).
+  const handleBulkDelete = async () => {
+    const n = sel.selected.size;
+    const ok = await confirm({
+      title: `Delete ${n} products?`,
+      message: "This will permanently remove the selected products. This cannot be undone.",
+      confirmLabel: `Delete ${n}`,
+      danger: true,
+    });
+    if (ok) bulkDeleteMutation.mutate();
+  };
+
+  // Inline stock edit (double-click the stock cell).
+  const inlineStockMutation = useMutation({
+    mutationFn: ({ id, stock }: { id: string; stock: number }) =>
+      productApi.update(id, { stock }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Stock updated");
     },
     onError: (e) => toast.error(friendlyDbError(e)),
   });
@@ -256,6 +281,7 @@ export default function Products() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <DateRangeFilter value={range} onChange={setRange} />
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -276,7 +302,7 @@ export default function Products() {
               { key: "category", header: "Category" },
               { key: "price", header: "Price", numeric: true },
               { key: "stock", header: "Stock", numeric: true },
-              { key: "status", header: "Status", format: (p: Product) => STATUS[p.status].label },
+              { key: "status", header: "Status", format: (p: Product) => PRODUCT_STATUS[p.status].label },
               { key: "created_at", header: "Created", format: (p: Product) => fmtDate(p.created_at) },
             ]}
           />
@@ -298,38 +324,21 @@ export default function Products() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-40">
-              {(Object.keys(STATUS) as ProductStatus[]).map((s) => (
+              {(Object.keys(PRODUCT_STATUS) as ProductStatus[]).map((s) => (
                 <DropdownMenuItem key={s} onClick={() => bulkStatusMutation.mutate(s)}>
-                  {STATUS[s].label}
+                  {PRODUCT_STATUS[s].label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Delete
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete {sel.selected.size} products?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently remove the selected products. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => bulkDeleteMutation.mutate()}>
-                  Delete {sel.selected.size}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1 text-destructive hover:text-destructive"
+            onClick={handleBulkDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </Button>
           <Button variant="ghost" size="sm" onClick={sel.clear}>
             Clear
           </Button>
@@ -339,7 +348,7 @@ export default function Products() {
       {/* Table card — bounded scroller so the sticky header pins */}
       <Card>
         <CardContent className="p-0 overflow-hidden">
-          <div className="overflow-y-auto h-[calc(100vh-200px)]">
+          <div ref={win.scrollRef} className="overflow-y-auto h-[calc(100vh-200px)]">
             <Table striped>
               <TableHeader>
                 <TableRow>
@@ -387,7 +396,7 @@ export default function Products() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map((p) => (
+                  win.visible.map((p) => (
                     <TableRow key={p.id} className="cursor-pointer" onClick={() => openEdit(p)}>
                       {/* Checkbox cell stops propagation so ticking never opens the modal */}
                       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -403,13 +412,18 @@ export default function Products() {
                         {p.category || "—"}
                       </TableCell>
                       <TableCell className="text-right font-mono">{fmtAmt(p.price)}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        {p.stock.toLocaleString("en-IN")}
+                      {/* Inline edit: double-click the stock number. The cell
+                          stops propagation so editing never opens the modal. */}
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <InlineEditCell
+                          value={String(p.stock)}
+                          className="text-right font-mono text-[13px]"
+                          title="Double-click to edit stock"
+                          onSave={(next) => inlineStockMutation.mutate({ id: p.id, stock: Number(next) || 0 })}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn("text-[10px]", STATUS[p.status].badge)}>
-                          {STATUS[p.status].label}
-                        </Badge>
+                        <StatusBadge meta={statusMeta(PRODUCT_STATUS, p.status)} />
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {fmtDate(p.created_at)}
@@ -456,6 +470,14 @@ export default function Products() {
                       </TableCell>
                     </TableRow>
                   ))
+                )}
+                {/* Infinite-scroll sentinel — grows the window near the bottom */}
+                {win.hasMore && (
+                  <TableRow ref={win.sentinelRef}>
+                    <TableCell colSpan={9} className="py-3 text-center text-xs text-muted-foreground">
+                      Loading more… ({win.visibleCount} of {filtered.length})
+                    </TableCell>
+                  </TableRow>
                 )}
               </TableBody>
             </Table>
@@ -528,8 +550,8 @@ export default function Products() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(STATUS) as ProductStatus[]).map((s) => (
-                      <SelectItem key={s} value={s}>{STATUS[s].label}</SelectItem>
+                    {(Object.keys(PRODUCT_STATUS) as ProductStatus[]).map((s) => (
+                      <SelectItem key={s} value={s}>{PRODUCT_STATUS[s].label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

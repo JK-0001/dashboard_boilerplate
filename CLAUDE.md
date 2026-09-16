@@ -44,14 +44,14 @@ different table layout. Duplication of the template is the intended design.
 never inline SVG icons. Sizes: leading button icon `mr-2 h-4 w-4`; row-action
 icons `h-3.5 w-3.5` inside `h-7 w-7` ghost buttons; compact hints `h-3 w-3`.
 
-**Colors** — only theme tokens (`bg-primary`, `text-muted-foreground`, …) or
-the semantic status palette below. Never hardcode hex/rgb, never pick new
-Tailwind colors outside these:
-- success/connected → emerald (`bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800`)
-- warning/pending → amber (same pattern)
-- error/overdue → red (same pattern)
-- info/medium → blue (same pattern)
-- neutral/low/inactive → slate (same pattern)
+**Colors & statuses** — only theme tokens (`bg-primary`,
+`text-muted-foreground`, …) or the tone registry in `src/lib/status.ts`.
+Never hardcode hex/rgb or invent badge classes. For every entity, declare a
+status map next to `PRODUCT_STATUS` (`Record<string, StatusMeta>` with
+tones: success=emerald, warning=amber, error=red, info=blue, neutral=slate,
+violet, cyan) and render via `<StatusBadge meta={statusMeta(MAP, key)} />`.
+Dots use `TONE_DOT`, text accents `TONE_TEXT`, chart colors `TONE_HEX` —
+same vocabulary everywhere so a chart slice and its badge can't drift.
 
 **Typography** — body text inherits DM Sans. `font-display` (Space Grotesk) is
 ONLY for: page `<h1>` (`font-display text-2xl font-bold tracking-tight`),
@@ -96,9 +96,13 @@ confirm → `xApi.removeMany` → red `toast.error("{n} xs deleted")`), and a
 ghost "Clear". Remember: adding the checkbox column changes the table's
 column count — update `SkeletonRows columns` and empty-state `colSpan`.
 
-**Deletes** — always `<AlertDialog>` confirm (title "Delete {name}?",
-consequence sentence, Cancel + primary "Delete" action), triggered by a ghost
-`Trash2` button with `text-destructive`. After deletion fire
+**Deletes & confirms** — standing row buttons use the declarative
+`<AlertDialog>` (title "Delete {name}?", consequence sentence, Cancel +
+primary "Delete" action), triggered by a ghost `Trash2` with
+`text-destructive`. Imperative flows (bulk actions, handlers, anything
+inside another modal) use `const confirm = useConfirm()` from
+`@/contexts/ConfirmContext`: `if (!(await confirm({ title, message,
+danger: true }))) return;`. Never `window.confirm`. After any deletion fire
 `toast.error("X deleted")` — red toast on delete is the house convention.
 
 **Toasts** — `import { toast } from "sonner"` only. `toast.success` on
@@ -116,6 +120,25 @@ create/update, `toast.error` for validation failures AND deletions,
 **Data fetching** — TanStack Query. Lists: `useQuery({ queryKey: ["xs"],
 queryFn: xApi.list })`. Mutations invalidate the list key in `onSuccess`.
 No other data libs, no useEffect-fetching, no optimistic updates.
+`useRealtimeSync()` (mounted once in AppLayout) already refreshes all open
+screens on any DB change — don't add per-page subscriptions unless a page
+needs its own toast on a specific table. With a real Supabase backend, wrap
+unbounded selects in `fetchAllRows()` (PostgREST silently caps at 1000 rows).
+
+**Big tables & inline edits** — the template already wires
+`useRowWindow(filtered, filterSig)`: render `win.visible`, keep the
+sentinel row, and extend `filterSig` when adding new filter criteria (it
+must change ONLY on real criteria changes, or scroll resets on every edit).
+For quick single-field edits use `<InlineEditCell>` in a
+`stopPropagation`'d cell (double-click edits; row click still opens the
+modal). Sort code/SKU columns with `naturalCompare` from
+`@/lib/naturalSort`, tags with `<TagInput>`.
+
+**Dates & periods** — the app-global reporting period is
+`usePeriod()`/`inPeriod()` (top-bar PeriodPicker; Indian FY presets).
+Per-table rolling filters use `<DateRangeFilter>` + `dateInRange()` from
+`@/lib/dateRange` (compare "YYYY-MM-DD" strings, never parse Dates per
+row). Relative stamps: `timeAgo()` / `relativeDate()` from format.ts.
 
 **Loading & empty states** — table loading = `<SkeletonRows rows={6}
 columns={N} />`. Empty state = icon + message row distinguishing "no data yet"

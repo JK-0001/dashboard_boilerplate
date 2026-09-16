@@ -11,8 +11,10 @@ import { useBackNavigation } from "@/hooks/useFormShortcuts";
 import { cn } from "@/lib/utils";
 import { CommandPalette } from "@/components/CommandPalette";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { PeriodPicker } from "@/components/PeriodPicker";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useHotkeys } from "@/hooks/useHotkeys";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useTrackRecentRoutes } from "@/hooks/useRecentRoutes";
 import { Button } from "@/components/ui/button";
 import { Search as SearchIcon, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -29,6 +31,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, signOut } = useAuth();
   useTrackRecentRoutes();
+  useRealtimeSync(); // live cross-tab/cross-user refresh (inert in demo mode)
 
   const handleSignOut = async () => {
     await signOut();
@@ -105,6 +108,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
         <div className="flex-1" />
 
+        <PeriodPicker />
         <NotificationsBell />
         <ThemeToggle />
         <Button

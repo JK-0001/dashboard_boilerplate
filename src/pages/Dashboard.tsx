@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { productApi, type Product } from "@/lib/demoStore";
 import { fmtMoney, fmtDateShort } from "@/lib/format";
+import { inPeriod, usePeriod } from "@/contexts/PeriodContext";
 import { cn } from "@/lib/utils";
 
 function StatCard({
@@ -81,11 +82,14 @@ function ListWidget({
 
 export default function Dashboard() {
   const router = useRouter();
+  const { period } = usePeriod(); // app-global reporting period (top-bar picker)
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: productApi.list,
   });
 
+  // Current-state metrics stay unscoped; "recent" activity respects the period.
+  const inRange = products.filter((p) => inPeriod(p.created_at, period));
   const stockValue = products.reduce((s, p) => s + p.price * p.stock, 0);
   const lowStock = products.filter((p) => p.status === "low_stock");
   const active = products.filter((p) => p.status === "active");
@@ -148,11 +152,11 @@ export default function Dashboard() {
       {/* List widgets */}
       <div className="grid gap-4 lg:grid-cols-2">
         <ListWidget
-          title="Recent Products"
+          title={`Recent Products · ${period.label}`}
           viewAllTo="/products"
           loading={isLoading}
-          rows={products.slice(0, 5)}
-          empty="No products yet."
+          rows={inRange.slice(0, 5)}
+          empty="No products in this period."
           renderRow={(p) => (
             <li
               key={p.id}

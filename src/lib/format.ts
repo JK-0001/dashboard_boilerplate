@@ -7,6 +7,7 @@
  *  - Zero renders as "—" in ledger-style tables (use fmtAmtOrDash).
  *  - Dates are "07 May 2026" (full) or "07 May" (compact).
  */
+import { formatDistanceToNow } from "date-fns";
 import { CURRENCY } from "@/lib/appConfig";
 
 /** Rounded, no decimals — dashboards/KPIs. e.g. ₹1,23,457 */
@@ -64,3 +65,25 @@ export function fmtDateShort(d: string | Date | null | undefined): string {
 /** Accounting Dr/Cr suffix + color (Dr = red, Cr = green). */
 export const balLabel = (b: number) => (b >= 0 ? "Dr" : "Cr");
 export const balClass = (b: number) => (b >= 0 ? "text-red-600" : "text-green-600");
+
+/** "5 minutes ago" — notifications, activity feeds, last-used stamps. */
+export function timeAgo(d: string | Date | null | undefined): string {
+  if (!d) return "—";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(date.getTime())) return "—";
+  return formatDistanceToNow(date, { addSuffix: true });
+}
+
+/** "Today" / "Yesterday" / "07 May 2026" — feed group headers. */
+export function relativeDate(d: string | Date | null | undefined): string {
+  if (!d) return "—";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(date.getTime())) return "—";
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (sameDay(date, today)) return "Today";
+  if (sameDay(date, yesterday)) return "Yesterday";
+  return fmtDate(date);
+}
