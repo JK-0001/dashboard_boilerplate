@@ -161,6 +161,21 @@ form · Esc close · Backspace back only from `?ref=dash` drill-downs.
   their content.
 - Never bypass `format.ts`, `dbErrors.ts`, or the toast conventions.
 
+## Spreadsheet import
+
+Every entity that users bring existing data into gets an Import button
+(gated by `data.import`) opening the generic `<ImportWizard>`
+(`src/components/ImportWizard.tsx` + `src/lib/importSheet.ts`). To wire it
+for a new entity: declare `IMPORT_FIELDS: ImportField[]` (key/label/
+required/`aliases` regex/type), a `transform(rec)` returning the entity
+input or `{ error }`, a `dedupeKey`, `existingKeys`, and `onCommit` →
+`xApi.createMany`. Never hand-roll a second import flow — the wizard
+already handles multi-sheet files, banner rows above headers
+(`guessHeaderRow`), header alias auto-mapping with manual override, ₹/comma
+number coercion, dd/mm/yyyy dates, mojibake repair, per-row rejection
+reasons, and in-file + against-existing dedup. See Products.tsx for the
+reference wiring; keep the "Download template" affordance.
+
 ## Roles & permissions
 
 `src/lib/permissions.ts` is the single vocabulary: `page.*` permissions

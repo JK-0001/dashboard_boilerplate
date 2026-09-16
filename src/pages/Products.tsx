@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, Trash2, Package, ChevronDown } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, ChevronDown, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,7 @@ import { ExportMenu } from "@/components/ExportMenu";
 import { StatusBadge } from "@/components/StatusBadge";
 import { InlineEditCell } from "@/components/InlineEditCell";
 import { DateRangeFilter, type DateRangeValue } from "@/components/DateRangeFilter";
+import { ImportWizard } from "@/components/ImportWizard";
 
 import { useListSearch, type SearchColumn } from "@/hooks/useListSearch";
 import { useBatchSelection } from "@/hooks/useBatchSelection";
@@ -58,8 +59,10 @@ import { useF2Save } from "@/hooks/useFormShortcuts";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useRowWindow } from "@/hooks/useRowWindow";
 import { useConfirm } from "@/contexts/ConfirmContext";
+import { usePermissions } from "@/contexts/PermissionsContext";
 
-import { productApi, type Product, type ProductStatus } from "@/lib/demoStore";
+import { productApi, type Product, type ProductInput, type ProductStatus } from "@/lib/demoStore";
+import type { ImportField } from "@/lib/importSheet";
 import { PRODUCT_STATUS, statusMeta } from "@/lib/status";
 import { dateInRange, localToday } from "@/lib/dateRange";
 import { friendlyDbError } from "@/lib/dbErrors";
@@ -79,12 +82,24 @@ const emptyForm = (): FormState => ({
   name: "", sku: "", category: "", price: "", stock: "", status: "active", notes: "",
 });
 
+// ── import schema (ImportWizard) ─────────────────────────────────────────────
+const IMPORT_FIELDS: ImportField[] = [
+  { key: "name",     label: "Product Name", required: true, aliases: /^(name|product|item|title)/i },
+  { key: "sku",      label: "SKU",          required: true, aliases: /(sku|code|item ?code|part ?no)/i, hint: "Used to spot duplicates" },
+  { key: "category", label: "Category",     aliases: /(category|group|type)/i },
+  { key: "price",    label: "Price",        type: "number", aliases: /(price|rate|mrp|amount)/i },
+  { key: "stock",    label: "Stock",        type: "number", aliases: /(stock|qty|quantity|balance)/i },
+  { key: "notes",    label: "Notes",        aliases: /(note|remark|comment)/i },
+];
+
 export default function Products() {
   const router = useRouter();
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const { can } = usePermissions();
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [range, setRange] = useState<DateRangeValue>({ key: "all" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -292,6 +307,11 @@ export default function Products() {
               onChange={(e) => search.setGlobal(e.target.value)}
             />
           </div>
+          {can("data.import") && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4" /> Import
+            </Button>
+          )}
           <ExportMenu
             data={filtered}
             filename="products"
@@ -306,10 +326,12 @@ export default function Products() {
               { key: "created_at", header: "Created", format: (p: Product) => fmtDate(p.created_at) },
             ]}
           />
-          <Button onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Product
-          </Button>
+          {can("products.write") && (
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Product
+            </Button>
+          )}
         </div>
       </div>
 
@@ -484,6 +506,30 @@ export default function Products() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Spreadsheet import — generic wizard, schema declared above */}
+      <ImportWizard<ProductInput>
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        entityLabel="products"
+        fields={IMPORT_FIELDS}
+        transform={(rec) => ({
+          name: rec.name,
+          sku: rec.sku,
+          category: rec.category,
+          price: Number(rec.price) || 0,
+          stock: Number(rec.stock) || 0,
+          status: "active" as ProductStatus,
+          notes: rec.notes,
+        })}
+        dedupeKey={(r) => r.sku.toLowerCase()}
+        existingKeys={new Set(products.map((p) => p.sku.toLowerCase()))}
+        onCommit={async (rows) => {
+          const n = await productApi.createMany(rows);
+          qc.invalidateQueries({ queryKey: ["products"] });
+          return n;
+        }}
+      />
 
       {/* Create / edit modal — the customized Sheet (centered, transform-free) */}
       <Sheet
