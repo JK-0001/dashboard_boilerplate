@@ -48,10 +48,24 @@ identically.
 The template already includes: clickable rows → edit modal, popup-modal
 create/edit (the centered Sheet), AlertDialog delete confirm + red toast,
 bulk selection (checkbox column + select-all) with a bulk-actions bar
-(bulk status update, bulk delete with confirm), global search with `/`
-hotkey, per-column funnel filters, CSV/Excel/PDF export, F2 save,
-localStorage drafts for new records, `?new=1` deep links, skeleton loading,
-and filter-aware empty states.
+(bulk status update, bulk delete via `useConfirm`), spreadsheet **import
+wizard** (header detection, alias mapping, preview, dedup) + CSV/Excel/PDF
+export, image attachments (`ImagePicker`, auto-resized uploads), inline
+cell editing (double-click stock), infinite-scroll row windowing, global
+search with `/` hotkey, per-column funnel filters, a per-table date-range
+filter, F2 save, localStorage drafts, `?new=1` deep links, skeleton
+loading, filter-aware empty states, and activity logging on every mutation.
+
+Also built in app-wide: **roles & permissions** (nav gating + RouteGuard +
+Team page with a permission matrix and an "act as role" demo switcher),
+the **activity log** at `/activity` (+ a generic DB-trigger migration in
+`supabase/migrations/`), the **status/tone registry** (`src/lib/status.ts`
+— one vocabulary for badges, dots, text accents, and chart colors), a
+promise-based `useConfirm()`, **realtime sync** (any DB change refreshes
+every open screen when Supabase is configured), the app-global reporting
+**period picker** (Indian FY presets), and the **chart kit**
+(`src/components/charts.tsx` — theme-token recharts constants, ChartCard
+triad, zero-filled date series).
 
 ## Non-negotiable conventions (what keeps every app consistent)
 

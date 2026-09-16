@@ -9,10 +9,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  ChartCard, CHART_CURSOR, CHART_GRID, CHART_TICK, CHART_TOOLTIP_STYLE, zeroFillDays,
+} from "@/components/charts";
 import { productApi, type Product } from "@/lib/demoStore";
 import { fmtMoney, fmtDateShort } from "@/lib/format";
 import { inPeriod, usePeriod } from "@/contexts/PeriodContext";
@@ -148,6 +152,23 @@ export default function Dashboard() {
           </Button>
         ))}
       </div>
+
+      {/* Trend chart — the ChartCard triad + zero-filled series */}
+      <ChartCard
+        title="Products added — last 14 days"
+        loading={isLoading}
+        empty={products.length === 0}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={zeroFillDays(products, (p) => p.created_at, 14)}>
+            <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
+            <XAxis dataKey="label" tick={CHART_TICK} tickLine={false} axisLine={false} />
+            <YAxis tick={CHART_TICK} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+            <Tooltip contentStyle={CHART_TOOLTIP_STYLE} cursor={CHART_CURSOR} />
+            <Bar dataKey="value" name="Added" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
 
       {/* List widgets */}
       <div className="grid gap-4 lg:grid-cols-2">

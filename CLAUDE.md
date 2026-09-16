@@ -161,6 +161,16 @@ form · Esc close · Backspace back only from `?ref=dash` drill-downs.
   their content.
 - Never bypass `format.ts`, `dbErrors.ts`, or the toast conventions.
 
+## Charts
+
+Charts render ONLY through `src/components/charts.tsx`: `<ChartCard>`
+(enforces the loading → empty → chart triad), the token-driven style
+constants (`CHART_TOOLTIP_STYLE`/`CHART_TICK`/`CHART_CURSOR`/`CHART_GRID` —
+charts flip with dark mode automatically, never inline chart colors), and
+`zeroFillDays()` so date series never collapse over gaps. Main series fill
+is `hsl(var(--primary))`; status-keyed series take `TONE_HEX[tone]` from
+the status registry. Recharts only — no other chart lib.
+
 ## Images & attachments
 
 Records that carry images use `<ImagePicker value onChange folder="xs" />`
