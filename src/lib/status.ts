@@ -10,7 +10,7 @@
  * TONE_HEX exists so recharts (which needs literal colours) draws with the
  * SAME vocabulary — a pie slice and its badge can never drift apart.
  */
-import type { ProductStatus } from "@/lib/demoStore";
+import type { ProductStatus, SupplierStatus } from "@/lib/demoStore";
 
 export type Tone = "success" | "warning" | "error" | "info" | "neutral" | "violet" | "cyan";
 
@@ -74,4 +74,10 @@ export const PRODUCT_STATUS: Record<ProductStatus, StatusMeta> = {
   active: { label: "Active", tone: "success" },
   low_stock: { label: "Low stock", tone: "warning" },
   discontinued: { label: "Discontinued", tone: "neutral" },
+};
+
+export const SUPPLIER_STATUS: Record<SupplierStatus, StatusMeta> = {
+  active: { label: "Active", tone: "success" },
+  on_hold: { label: "On hold", tone: "warning" },
+  blacklisted: { label: "Blacklisted", tone: "error" },
 };

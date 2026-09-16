@@ -22,12 +22,15 @@ export const PERMISSIONS = [
   // page visibility
   "page.dashboard",
   "page.products",
+  "page.suppliers",
   "page.activity",
   "page.team",
   "page.settings",
   // actions
   "products.write",
   "products.delete",
+  "suppliers.write",
+  "suppliers.delete",
   "data.import",
   "data.export",
   "team.manage",
@@ -38,11 +41,14 @@ export type Permission = (typeof PERMISSIONS)[number];
 export const PERMISSION_LABELS: Record<Permission, string> = {
   "page.dashboard": "View dashboard",
   "page.products": "View products",
+  "page.suppliers": "View suppliers",
   "page.activity": "View activity log",
   "page.team": "View team",
   "page.settings": "View settings",
   "products.write": "Create / edit products",
   "products.delete": "Delete products",
+  "suppliers.write": "Create / edit suppliers",
+  "suppliers.delete": "Delete suppliers",
   "data.import": "Import data",
   "data.export": "Export data",
   "team.manage": "Manage team & roles",
@@ -53,16 +59,17 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   owner: [...PERMISSIONS],
   admin: [...PERMISSIONS],
   manager: [
-    "page.dashboard", "page.products", "page.activity", "page.settings",
-    "products.write", "data.import", "data.export",
+    "page.dashboard", "page.products", "page.suppliers", "page.activity", "page.settings",
+    "products.write", "suppliers.write", "data.import", "data.export",
   ],
-  staff: ["page.dashboard", "page.products", "products.write"],
+  staff: ["page.dashboard", "page.products", "page.suppliers", "products.write", "suppliers.write"],
 };
 
 /** Route → required page permission. Routes not listed are open to all. */
 export const ROUTE_PERMISSION: Record<string, Permission> = {
   "/": "page.dashboard",
   "/products": "page.products",
+  "/suppliers": "page.suppliers",
   "/activity": "page.activity",
   "/team": "page.team",
   "/settings": "page.settings",

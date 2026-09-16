@@ -101,6 +101,92 @@ export const productApi = {
   },
 };
 
+// ── Suppliers ───────────────────────────────────────────────────────────────
+
+export type SupplierStatus = "active" | "on_hold" | "blacklisted";
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contact_person: string;
+  phone: string;
+  email: string;
+  city: string;
+  gst_number: string;
+  status: SupplierStatus;
+  notes: string;
+  created_at: string;
+}
+
+export type SupplierInput = Omit<Supplier, "id" | "created_at">;
+
+let suppliers: Supplier[] = [
+  { id: uid(), name: "Sharma Traders",          contact_person: "Rakesh Sharma",  phone: "98290 11223", email: "rakesh@sharmatraders.in",   city: "Jaipur",    gst_number: "08AABCS1234F1Z5", status: "active",      notes: "Primary fasteners supplier", created_at: daysAgo(3) },
+  { id: uid(), name: "Patel Bearing House",     contact_person: "Mehul Patel",    phone: "98250 44556", email: "sales@patelbearings.com",   city: "Ahmedabad", gst_number: "24AACCP5678G1ZK", status: "active",      notes: "", created_at: daysAgo(6) },
+  { id: uid(), name: "Kumar Industrial Belts",  contact_person: "S. Kumar",       phone: "98400 77889", email: "kumar@kibelts.co.in",       city: "Chennai",   gst_number: "33AADCK9012H1ZR", status: "active",      notes: "", created_at: daysAgo(9) },
+  { id: uid(), name: "Lubetech Oils",           contact_person: "Priya Nair",     phone: "98950 22334", email: "priya@lubetech.in",         city: "Kochi",     gst_number: "32AABCL3456J1ZM", status: "on_hold",     notes: "Awaiting revised rate card", created_at: daysAgo(14) },
+  { id: uid(), name: "Singh Couplings Pvt Ltd", contact_person: "Harpreet Singh", phone: "98720 55667", email: "harpreet@singhcouplings.com", city: "Ludhiana", gst_number: "03AAECS7890K1ZP", status: "active",      notes: "", created_at: daysAgo(18) },
+  { id: uid(), name: "Verma Pulley Works",      contact_person: "Anil Verma",     phone: "98110 88990", email: "anil@vermapulley.in",       city: "Delhi",     gst_number: "07AAFCV2345L1ZT", status: "active",      notes: "Slow dispatch in monsoon", created_at: daysAgo(22) },
+  { id: uid(), name: "Deshmukh Hardware",       contact_person: "Sunil Deshmukh", phone: "98220 33445", email: "sunil@deshmukhhw.com",      city: "Pune",      gst_number: "27AAGCD6789M1ZW", status: "on_hold",     notes: "Payment dispute under review", created_at: daysAgo(30) },
+  { id: uid(), name: "Roy Engineering Stores",  contact_person: "Abhijit Roy",    phone: "98300 66778", email: "roy@royengg.in",            city: "Kolkata",   gst_number: "19AAHCR0123N1ZX", status: "active",      notes: "", created_at: daysAgo(38) },
+  { id: uid(), name: "Gupta Steel Syndicate",   contact_person: "Manoj Gupta",    phone: "98390 99001", email: "manoj@guptasteel.co.in",    city: "Kanpur",    gst_number: "09AAICG4567P1ZB", status: "blacklisted", notes: "Repeated quality failures — do not order", created_at: daysAgo(55) },
+  { id: uid(), name: "Iyer Machine Tools",      contact_person: "Lakshmi Iyer",   phone: "98860 12131", email: "lakshmi@iyermt.com",        city: "Bengaluru", gst_number: "29AAJCI8901Q1ZD", status: "active",      notes: "", created_at: daysAgo(70) },
+];
+
+export const supplierApi = {
+  async list(): Promise<Supplier[]> {
+    await delay();
+    return [...suppliers].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  },
+
+  async create(input: SupplierInput): Promise<Supplier> {
+    await delay();
+    if (suppliers.some((s) => s.name.trim().toLowerCase() === input.name.trim().toLowerCase())) {
+      throw Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" });
+    }
+    const row: Supplier = { ...input, id: uid(), created_at: new Date().toISOString() };
+    suppliers = [row, ...suppliers];
+    return row;
+  },
+
+  async update(id: string, patch: Partial<SupplierInput>): Promise<Supplier> {
+    await delay();
+    const idx = suppliers.findIndex((s) => s.id === id);
+    if (idx === -1) throw new Error("Supplier not found");
+    suppliers[idx] = { ...suppliers[idx], ...patch };
+    return suppliers[idx];
+  },
+
+  async remove(id: string): Promise<void> {
+    await delay();
+    suppliers = suppliers.filter((s) => s.id !== id);
+  },
+
+  async removeMany(ids: string[]): Promise<void> {
+    await delay();
+    const drop = new Set(ids);
+    suppliers = suppliers.filter((s) => !drop.has(s.id));
+  },
+
+  async updateMany(ids: string[], patch: Partial<SupplierInput>): Promise<void> {
+    await delay();
+    const hit = new Set(ids);
+    suppliers = suppliers.map((s) => (hit.has(s.id) ? { ...s, ...patch } : s));
+  },
+
+  /** Bulk create (import wizard). Returns the number inserted. */
+  async createMany(inputs: SupplierInput[]): Promise<number> {
+    await delay();
+    const rows: Supplier[] = inputs.map((input) => ({
+      ...input,
+      id: uid(),
+      created_at: new Date().toISOString(),
+    }));
+    suppliers = [...rows, ...suppliers];
+    return rows.length;
+  },
+};
+
 // ── Team (roles demo) ───────────────────────────────────────────────────────
 
 export type TeamRole = "owner" | "admin" | "manager" | "staff";
