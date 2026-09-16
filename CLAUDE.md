@@ -161,6 +161,17 @@ form · Esc close · Backspace back only from `?ref=dash` drill-downs.
   their content.
 - Never bypass `format.ts`, `dbErrors.ts`, or the toast conventions.
 
+## Images & attachments
+
+Records that carry images use `<ImagePicker value onChange folder="xs" />`
+in the form (first image = "Main") and store `images?: Attachment[]` on the
+entity; show `p.images?.[0]` as a 24px thumbnail in the name cell. All
+upload mechanics live in `@/lib/attachments` — validation allowlist + size
+cap with human messages, client-side `resizeImageFile` (≤1600px JPEG 0.82
+before upload, always), demo data-URLs vs Supabase storage behind one
+`attachmentApi`. Removal is best-effort and never blocks the UI. Never
+upload originals unresized; never build a second upload path.
+
 ## Activity log
 
 Every mutation's `onSuccess` calls `logActivity({ action, entityType,

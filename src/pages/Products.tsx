@@ -51,6 +51,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { InlineEditCell } from "@/components/InlineEditCell";
 import { DateRangeFilter, type DateRangeValue } from "@/components/DateRangeFilter";
 import { ImportWizard } from "@/components/ImportWizard";
+import { ImagePicker } from "@/components/ImagePicker";
+import type { Attachment } from "@/lib/attachments";
 
 import { useListSearch, type SearchColumn } from "@/hooks/useListSearch";
 import { useBatchSelection } from "@/hooks/useBatchSelection";
@@ -78,9 +80,10 @@ interface FormState {
   stock: string;
   status: ProductStatus;
   notes: string;
+  images: Attachment[];
 }
 const emptyForm = (): FormState => ({
-  name: "", sku: "", category: "", price: "", stock: "", status: "active", notes: "",
+  name: "", sku: "", category: "", price: "", stock: "", status: "active", notes: "", images: [],
 });
 
 // ── import schema (ImportWizard) ─────────────────────────────────────────────
@@ -166,7 +169,7 @@ export default function Products() {
     setForm({
       name: p.name, sku: p.sku, category: p.category,
       price: String(p.price), stock: String(p.stock),
-      status: p.status, notes: p.notes,
+      status: p.status, notes: p.notes, images: p.images ?? [],
     });
     setSheetOpen(true);
   };
@@ -192,7 +195,7 @@ export default function Products() {
     value: form,
     enabled: sheetOpen && !editingId,
     onRestore: setForm,
-    isEmpty: (f) => !f.name && !f.sku && !f.category && !f.price && !f.stock && !f.notes,
+    isEmpty: (f) => !f.name && !f.sku && !f.category && !f.price && !f.stock && !f.notes && f.images.length === 0,
   });
 
   // ── mutations ─────────────────────────────────────────────────────────────
@@ -206,6 +209,7 @@ export default function Products() {
         stock: Number(form.stock) || 0,
         status: form.status,
         notes: form.notes.trim(),
+        images: form.images,
       };
       return editingId ? productApi.update(editingId, payload) : productApi.create(payload);
     },
@@ -446,7 +450,19 @@ export default function Products() {
                           aria-label={`Select ${p.name}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {p.images?.[0] && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={p.images[0].url}
+                              alt=""
+                              className="h-6 w-6 shrink-0 rounded object-cover border"
+                            />
+                          )}
+                          <span className="truncate">{p.name}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-mono text-sm">{p.sku}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {p.category || "—"}
@@ -644,6 +660,15 @@ export default function Products() {
                   placeholder="0"
                 />
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Images</Label>
+              <ImagePicker
+                value={form.images}
+                onChange={(v) => set("images", v)}
+                folder="products"
+              />
             </div>
 
             <div className="grid gap-2">

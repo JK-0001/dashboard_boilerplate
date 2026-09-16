@@ -8,6 +8,7 @@
  *   module through react-query.
  */
 import { uid } from "@/lib/utils";
+import type { Attachment } from "@/lib/attachments";
 
 export type ProductStatus = "active" | "low_stock" | "discontinued";
 
@@ -20,6 +21,7 @@ export interface Product {
   stock: number;
   status: ProductStatus;
   notes: string;
+  images?: Attachment[];
   created_at: string;
 }
 
